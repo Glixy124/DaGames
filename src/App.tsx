@@ -33,7 +33,7 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/games.json');
+      const res = await fetch('./games.json');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as GameEntry[];
       setBaseGames(Array.isArray(data) ? data : []);

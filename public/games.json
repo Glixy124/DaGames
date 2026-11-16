@@ -6,7 +6,7 @@
     "description": "Pilot your interceptor through incoming asteroid fields and alien squadrons.",
     "controls": "Arrow Keys / A-D · Space to Fire",
     "players": "1 Player",
-    "iframe": "<iframe src=\"/games/orbital-defender.html\" title=\"Orbital Defender\" loading=\"lazy\" allow=\"fullscreen\" allowfullscreen></iframe>"
+    "iframe": "<iframe src=\"games/orbital-defender.html\" title=\"Orbital Defender\" loading=\"lazy\" allow=\"fullscreen\" allowfullscreen></iframe>"
   },
   {
     "id": "tile-merge",
@@ -15,7 +15,7 @@
     "description": "Slide and combine matching numbered tiles across the 4x4 grid to reach 2048.",
     "controls": "Arrow Keys / WASD / Swipe",
     "players": "1 Player",
-    "iframe": "<iframe src=\"/games/tile-merge.html\" title=\"Tile Merge 2048\" loading=\"lazy\" allow=\"fullscreen\" allowfullscreen></iframe>"
+    "iframe": "<iframe src=\"games/tile-merge.html\" title=\"Tile Merge 2048\" loading=\"lazy\" allow=\"fullscreen\" allowfullscreen></iframe>"
   },
   {
     "id": "serpent-grid",
@@ -24,7 +24,7 @@
     "description": "Navigate the grid, collect energy cores, and grow longer without colliding.",
     "controls": "Arrow Keys / WASD · Space to Pause",
     "players": "1 Player",
-    "iframe": "<iframe src=\"/games/serpent-grid.html\" title=\"Serpent Grid\" loading=\"lazy\" allow=\"fullscreen\" allowfullscreen></iframe>"
+    "iframe": "<iframe src=\"games/serpent-grid.html\" title=\"Serpent Grid\" loading=\"lazy\" allow=\"fullscreen\" allowfullscreen></iframe>"
   },
   {
     "id": "prism-breaker",
@@ -33,7 +33,7 @@
     "description": "Deflect the energy sphere with precision paddle angles to shatter multi-tier blocks.",
     "controls": "Mouse / Arrow Keys / A-D",
     "players": "1 Player",
-    "iframe": "<iframe src=\"/games/prism-breaker.html\" title=\"Prism Breaker\" loading=\"lazy\" allow=\"fullscreen\" allowfullscreen></iframe>"
+    "iframe": "<iframe src=\"games/prism-breaker.html\" title=\"Prism Breaker\" loading=\"lazy\" allow=\"fullscreen\" allowfullscreen></iframe>"
   },
   {
     "id": "minefield-recon",
@@ -42,7 +42,7 @@
     "description": "Clear safe grid sectors using numerical adjacency clues and tactical warning flags.",
     "controls": "Click to Reveal · Right-Click to Flag",
     "players": "1 Player",
-    "iframe": "<iframe src=\"/games/minefield-recon.html\" title=\"Minefield Recon\" loading=\"lazy\" allow=\"fullscreen\" allowfullscreen></iframe>"
+    "iframe": "<iframe src=\"games/minefield-recon.html\" title=\"Minefield Recon\" loading=\"lazy\" allow=\"fullscreen\" allowfullscreen></iframe>"
   },
   {
     "id": "court-rally",
@@ -51,6 +51,6 @@
     "description": "Fast-paced table paddle duel with spin physics against a responsive bot or friend.",
     "controls": "W-S / Up-Down Keys · Mouse Optional",
     "players": "1–2 Players",
-    "iframe": "<iframe src=\"/games/court-rally.html\" title=\"Court Rally\" loading=\"lazy\" allow=\"fullscreen\" allowfullscreen></iframe>"
+    "iframe": "<iframe src=\"games/court-rally.html\" title=\"Court Rally\" loading=\"lazy\" allow=\"fullscreen\" allowfullscreen></iframe>"
   }
 ]

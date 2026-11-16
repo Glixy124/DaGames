@@ -18,7 +18,26 @@
   </head>
   <body class="bg-[#0B0F17] text-[#F1F5F9] antialiased selection:bg-amber-500/30 selection:text-amber-100">
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script id="app-entry" type="module" src="/src/main.tsx"></script>
+    <script>
+      (function () {
+        var booted = false;
+        function bootFallback() {
+          if (booted || window.__VAULTPLAY_MOUNTED__) return;
+          booted = true;
+          var s = document.createElement('script');
+          s.src = './static-entry.js';
+          document.body.appendChild(s);
+        }
+        var entry = document.getElementById('app-entry') || document.querySelector('script[type="module"]');
+        if (entry) {
+          entry.addEventListener('error', bootFallback);
+        }
+        window.addEventListener('DOMContentLoaded', function () {
+          setTimeout(bootFallback, 2000);
+        });
+      })();
+    </script>
   </body>
 </html>
 
