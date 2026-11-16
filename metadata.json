@@ -1,0 +1,6 @@
+{
+  "name": "VaultPlay",
+  "description": "Instant-search unblocked browser games portal powered by an iframe JSON catalog.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

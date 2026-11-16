@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Court Rally</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #0b0f17; color: #f1f5f9;
+      font-family: system-ui, -apple-system, sans-serif;
+      user-select: none;
+    }
+    .wrap {
+      position: relative; width: 100%; height: 100%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 14px;
+    }
+    .hud {
+      position: absolute; top: 0; left: 0; right: 0; z-index: 5;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 20px; font-size: 13px; font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    .scores {
+      font-family: ui-monospace, monospace; font-size: 22px; font-weight: 700; letter-spacing: 0.1em;
+    }
+    .btn-mini {
+      background: #161b22; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    canvas {
+      width: 100%; height: 100%; max-width: 820px; max-height: 500px;
+      border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);
+      background: #131a26; display: block;
+    }
+    .overlay {
+      position: absolute; inset: 0; z-index: 10;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(11,15,23,0.85); backdrop-filter: blur(5px);
+      text-align: center; padding: 24px; gap: 14px;
+    }
+    .overlay.hidden { display: none; }
+    .overlay h1 { font-size: 30px; font-weight: 700; }
+    .overlay p { font-size: 13px; color: #94a3b8; max-width: 360px; line-height: 1.5; }
+    .btn-row { display: flex; gap: 10px; }
+    .btn-primary {
+      background: #f59e0b; color: #0b0f17; border: none; border-radius: 8px;
+      padding: 11px 22px; font-size: 14px; font-weight: 700; cursor: pointer;
+    }
+    .btn-primary:hover { background: #fbbf24; }
+    .btn-sec {
+      background: #1f2937; color: #f8fafc; border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 8px; padding: 11px 22px; font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hud">
+      <div style="color:#94a3b8;" id="modeLabel">1P vs Bot</div>
+      <div class="scores" id="scoreEl">0 : 0</div>
+      <button class="btn-mini" id="resetBtn" type="button">Menu</button>
+    </div>
+
+    <canvas id="c" width="760" height="460"></canvas>
+
+    <div class="overlay" id="menuOverlay">
+      <h1>Court Rally</h1>
+      <p>First to 7 points wins. Left paddle uses W/S (or Mouse in 1P). Right paddle uses Up/Down Arrows in 2P.</p>
+      <div class="btn-row">
+        <button class="btn-primary" id="btn1p" type="button">1 Player vs Bot</button>
+        <button class="btn-sec" id="btn2p" type="button">2 Players Local</button>
+      </div>
+    </div>
+
+    <div class="overlay hidden" id="overOverlay">
+      <h1 id="winTitle">Match Complete</h1>
+      <p id="winSub">Final Score: 7 - 4</p>
+      <button class="btn-primary" id="againBtn" type="button">Play Again</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('scoreEl');
+    const modeLabel = document.getElementById('modeLabel');
+    const menuOverlay = document.getElementById('menuOverlay');
+    const overOverlay = document.getElementById('overOverlay');
+    const winTitle = document.getElementById('winTitle');
+    const winSub = document.getElementById('winSub');
+
+    const keys = {};
+    window.addEventListener('keydown', (e) => {
+      if (['ArrowUp','ArrowDown','KeyW','KeyS'].includes(e.code)) e.preventDefault();
+      keys[e.code] = true;
+    });
+    window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+    let state = 'MENU', twoPlayer = false;
+    let left, right, ball, s1, s2, lastTime;
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (state !== 'PLAYING' || twoPlayer) return;
+      const rect = canvas.getBoundingClientRect();
+      const my = ((e.clientY - rect.top) / rect.height) * canvas.height;
+      left.y = Math.max(left.h / 2 + 10, Math.min(canvas.height - left.h / 2 - 10, my));
+    });
+
+    function serve(dir) {
+      const angle = (Math.random() * 0.7 - 0.35);
+      const speed = 380;
+      ball = { x: canvas.width / 2, y: canvas.height / 2, r: 8, vx: Math.cos(angle) * speed * dir, vy: Math.sin(angle) * speed, speed };
+    }
+
+    function start(is2p) {
+      twoPlayer = is2p;
+      modeLabel.textContent = twoPlayer ? '2 Players Local' : '1P vs Bot';
+      left = { x: 28, y: canvas.height / 2, w: 12, h: 86, speed: 400 };
+      right = { x: canvas.width - 28, y: canvas.height / 2, w: 12, h: 86, speed: 350 };
+      s1 = 0; s2 = 0;
+      scoreEl.textContent = '0 : 0';
+      serve(1);
+      state = 'PLAYING';
+      menuOverlay.classList.add('hidden');
+      overOverlay.classList.add('hidden');
+      lastTime = performance.now();
+    }
+
+    function update(dt) {
+      if (state !== 'PLAYING') return;
+
+      if (keys['KeyW'] || (!twoPlayer && keys['ArrowUp'])) left.y -= left.speed * dt;
+      if (keys['KeyS'] || (!twoPlayer && keys['ArrowDown'])) left.y += left.speed * dt;
+      left.y = Math.max(left.h / 2 + 10, Math.min(canvas.height - left.h / 2 - 10, left.y));
+
+      if (twoPlayer) {
+        if (keys['ArrowUp']) right.y -= left.speed * dt;
+        if (keys['ArrowDown']) right.y += left.speed * dt;
+      } else {
+        const target = ball.vx > 0 ? ball.y : canvas.height / 2;
+        if (right.y < target - 10) right.y += right.speed * dt;
+        else if (right.y > target + 10) right.y -= right.speed * dt;
+      }
+      right.y = Math.max(right.h / 2 + 10, Math.min(canvas.height - right.h / 2 - 10, right.y));
+
+      ball.x += ball.vx * dt;
+      ball.y += ball.vy * dt;
+
+      if (ball.y - ball.r < 10) { ball.y = 10 + ball.r; ball.vy = Math.abs(ball.vy); }
+      if (ball.y + ball.r > canvas.height - 10) { ball.y = canvas.height - 10 - ball.r; ball.vy = -Math.abs(ball.vy); }
+
+      if (
+        ball.vx < 0 &&
+        ball.x - ball.r <= left.x + left.w / 2 &&
+        ball.x + ball.r >= left.x - left.w / 2 &&
+        Math.abs(ball.y - left.y) <= left.h / 2 + ball.r
+      ) {
+        const hit = (ball.y - left.y) / (left.h / 2);
+        const angle = hit * (Math.PI / 3.2);
+        ball.speed = Math.min(680, ball.speed + 24);
+        ball.vx = Math.cos(angle) * ball.speed;
+        ball.vy = Math.sin(angle) * ball.speed;
+        ball.x = left.x + left.w / 2 + ball.r;
+      }
+
+      if (
+        ball.vx > 0 &&
+        ball.x + ball.r >= right.x - right.w / 2 &&
+        ball.x - ball.r <= right.x + right.w / 2 &&
+        Math.abs(ball.y - right.y) <= right.h / 2 + ball.r
+      ) {
+        const hit = (ball.y - right.y) / (right.h / 2);
+        const angle = Math.PI - hit * (Math.PI / 3.2);
+        ball.speed = Math.min(680, ball.speed + 24);
+        ball.vx = Math.cos(angle) * ball.speed;
+        ball.vy = Math.sin(angle) * ball.speed;
+        ball.x = right.x - right.w / 2 - ball.r;
+      }
+
+      if (ball.x < -10) { s2++; checkPoint(-1); }
+      else if (ball.x > canvas.width + 10) { s1++; checkPoint(1); }
+    }
+
+    function checkPoint(serveDir) {
+      scoreEl.textContent = `${s1} : ${s2}`;
+      if (s1 >= 7 || s2 >= 7) {
+        state = 'OVER';
+        winTitle.textContent = s1 >= 7 ? 'Left Player Wins!' : (twoPlayer ? 'Right Player Wins!' : 'Bot Wins!');
+        winSub.textContent = `Final Score: ${s1} – ${s2}`;
+        overOverlay.classList.remove('hidden');
+      } else {
+        serve(serveDir);
+      }
+    }
+
+    function draw() {
+      ctx.fillStyle = '#131a26';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.16)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+
+      ctx.setLineDash([8, 8]);
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2, 10);
+      ctx.lineTo(canvas.width / 2, canvas.height - 10);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      if (left && right) {
+        ctx.fillStyle = '#fb7185';
+        ctx.fillRect(left.x - left.w / 2, left.y - left.h / 2, left.w, left.h);
+        ctx.fillStyle = '#e2e8f0';
+        ctx.fillRect(right.x - right.w / 2, right.y - right.h / 2, right.w, right.h);
+      }
+      if (ball) {
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function loop(now) {
+      const dt = Math.min(0.05, (now - lastTime) / 1000);
+      lastTime = now;
+      update(dt);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    lastTime = performance.now();
+    requestAnimationFrame(loop);
+
+    document.getElementById('btn1p').addEventListener('click', () => start(false));
+    document.getElementById('btn2p').addEventListener('click', () => start(true));
+    document.getElementById('againBtn').addEventListener('click', () => start(twoPlayer));
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      state = 'MENU';
+      overOverlay.classList.add('hidden');
+      menuOverlay.classList.remove('hidden');
+    });
+  </script>
+</body>
+</html>

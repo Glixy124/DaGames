@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tile Merge 2048</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #0d1117; color: #f1f5f9;
+      font-family: system-ui, -apple-system, sans-serif;
+      user-select: none;
+    }
+    .page {
+      width: 100%; height: 100%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 16px; gap: 16px;
+    }
+    .topbar {
+      width: 100%; max-width: 380px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .title { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+    .stats { display: flex; gap: 10px; font-variant-numeric: tabular-nums; }
+    .stat-box {
+      background: #161b22; border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px; padding: 6px 12px; text-align: center;
+    }
+    .stat-label { font-size: 11px; color: #94a3b8; display: block; }
+    .stat-val { font-size: 15px; font-weight: 700; font-family: ui-monospace, monospace; color: #f59e0b; }
+    .controls-row {
+      width: 100%; max-width: 380px;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 12px; color: #94a3b8;
+    }
+    .btn {
+      background: #1f2937; color: #f8fafc; border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 6px; padding: 7px 14px; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    .btn:hover { background: #374151; }
+    .board-wrap { position: relative; width: 100%; max-width: 380px; aspect-ratio: 1 / 1; }
+    .board {
+      width: 100%; height: 100%;
+      background: #161b22; border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px; padding: 10px;
+      display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .cell {
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      font-size: 26px; font-weight: 700; font-family: ui-monospace, monospace;
+      transition: transform 0.12s ease, background 0.12s ease;
+    }
+    .overlay {
+      position: absolute; inset: 0; border-radius: 12px;
+      background: rgba(13,17,23,0.88); backdrop-filter: blur(4px);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 12px; text-align: center; padding: 20px;
+    }
+    .overlay.hidden { display: none; }
+    .overlay h2 { font-size: 26px; font-weight: 700; }
+    .overlay p { font-size: 13px; color: #94a3b8; }
+    .btn-primary {
+      background: #f59e0b; color: #0b0f17; border: none; border-radius: 8px;
+      padding: 10px 22px; font-size: 14px; font-weight: 700; cursor: pointer;
+    }
+    .btn-primary:hover { background: #fbbf24; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="topbar">
+      <div class="title">2048</div>
+      <div class="stats">
+        <div class="stat-box"><span class="stat-label">Score</span><span class="stat-val" id="scoreEl">0</span></div>
+        <div class="stat-box"><span class="stat-label">Best</span><span class="stat-val" id="bestEl">0</span></div>
+      </div>
+    </div>
+
+    <div class="controls-row">
+      <span>Use Arrow Keys, WASD, or Swipe</span>
+      <button class="btn" id="newBtn" type="button">New Game</button>
+    </div>
+
+    <div class="board-wrap" id="boardWrap">
+      <div class="board" id="board"></div>
+      <div class="overlay hidden" id="endOverlay">
+        <h2 id="endTitle">No Moves Left</h2>
+        <p id="endMsg">Final score: 0</p>
+        <button class="btn-primary" id="againBtn" type="button">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const COLORS = {
+      0: ['#1f2733', 'transparent'],
+      2: ['#e2e8f0', '#0f172a'],
+      4: ['#cbd5e1', '#0f172a'],
+      8: ['#fdba74', '#0f172a'],
+      16: ['#fb923c', '#0f172a'],
+      32: ['#f97316', '#ffffff'],
+      64: ['#ea580c', '#ffffff'],
+      128: ['#fde047', '#0f172a'],
+      256: ['#facc15', '#0f172a'],
+      512: ['#eab308', '#0f172a'],
+      1024: ['#f59e0b', '#0f172a'],
+      2048: ['#10b981', '#052e16']
+    };
+
+    const boardEl = document.getElementById('board');
+    const scoreEl = document.getElementById('scoreEl');
+    const bestEl = document.getElementById('bestEl');
+    const endOverlay = document.getElementById('endOverlay');
+    const endTitle = document.getElementById('endTitle');
+    const endMsg = document.getElementById('endMsg');
+
+    const BEST_KEY = 'vp_2048_best';
+    let best = Number(localStorage.getItem(BEST_KEY) || 0);
+    let grid = [];
+    let score = 0;
+    let wonOnce = false;
+
+    function init() {
+      grid = Array.from({ length: 4 }, () => Array(4).fill(0));
+      score = 0;
+      wonOnce = false;
+      endOverlay.classList.add('hidden');
+      addTile();
+      addTile();
+      render();
+    }
+
+    function addTile() {
+      const empty = [];
+      for (let r = 0; r < 4; r++) {
+        for (let c = 0; c < 4; c++) {
+          if (grid[r][c] === 0) empty.push([r, c]);
+        }
+      }
+      if (!empty.length) return;
+      const [r, c] = empty[Math.floor(Math.random() * empty.length)];
+      grid[r][c] = Math.random() < 0.9 ? 2 : 4;
+    }
+
+    function slideLine(line) {
+      const nums = line.filter(v => v !== 0);
+      const out = [];
+      let gained = 0;
+      for (let i = 0; i < nums.length; i++) {
+        if (i + 1 < nums.length && nums[i] === nums[i + 1]) {
+          const merged = nums[i] * 2;
+          out.push(merged);
+          gained += merged;
+          i++;
+        } else {
+          out.push(nums[i]);
+        }
+      }
+      while (out.length < 4) out.push(0);
+      return { out, gained };
+    }
+
+    function move(dir) {
+      const prev = JSON.stringify(grid);
+      let gainedTotal = 0;
+      if (dir === 'left' || dir === 'right') {
+        for (let r = 0; r < 4; r++) {
+          let row = [...grid[r]];
+          if (dir === 'right') row.reverse();
+          const { out, gained } = slideLine(row);
+          gainedTotal += gained;
+          if (dir === 'right') out.reverse();
+          grid[r] = out;
+        }
+      } else {
+        for (let c = 0; c < 4; c++) {
+          let col = [grid[0][c], grid[1][c], grid[2][c], grid[3][c]];
+          if (dir === 'down') col.reverse();
+          const { out, gained } = slideLine(col);
+          gainedTotal += gained;
+          if (dir === 'down') out.reverse();
+          for (let r = 0; r < 4; r++) grid[r][c] = out[r];
+        }
+      }
+
+      if (JSON.stringify(grid) !== prev) {
+        score += gainedTotal;
+        addTile();
+        render();
+        checkState();
+      }
+    }
+
+    function hasMoves() {
+      for (let r = 0; r < 4; r++) {
+        for (let c = 0; c < 4; c++) {
+          if (grid[r][c] === 0) return true;
+          if (c < 3 && grid[r][c] === grid[r][c + 1]) return true;
+          if (r < 3 && grid[r][c] === grid[r + 1][c]) return true;
+        }
+      }
+      return false;
+    }
+
+    function checkState() {
+      if (!wonOnce && grid.some(row => row.includes(2048))) {
+        wonOnce = true;
+        endTitle.textContent = '2048 Reached!';
+        endMsg.textContent = `Score: ${score}. Start a new board or reset.`;
+        endOverlay.classList.remove('hidden');
+        return;
+      }
+      if (!hasMoves()) {
+        endTitle.textContent = 'No Moves Left';
+        endMsg.textContent = `Final Score: ${score}`;
+        endOverlay.classList.remove('hidden');
+      }
+    }
+
+    function render() {
+      scoreEl.textContent = score;
+      if (score > best) {
+        best = score;
+        localStorage.setItem(BEST_KEY, String(best));
+      }
+      bestEl.textContent = best;
+      boardEl.innerHTML = '';
+      for (let r = 0; r < 4; r++) {
+        for (let c = 0; c < 4; c++) {
+          const val = grid[r][c];
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          const [bg, fg] = COLORS[val] || ['#10b981', '#ffffff'];
+          cell.style.background = bg;
+          cell.style.color = fg;
+          cell.style.fontSize = val >= 1024 ? '20px' : val >= 128 ? '23px' : '26px';
+          cell.textContent = val || '';
+          boardEl.appendChild(cell);
+        }
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      const map = {
+        ArrowLeft: 'left', KeyA: 'left',
+        ArrowRight: 'right', KeyD: 'right',
+        ArrowUp: 'up', KeyW: 'up',
+        ArrowDown: 'down', KeyS: 'down'
+      };
+      if (map[e.code]) {
+        e.preventDefault();
+        move(map[e.code]);
+      }
+    });
+
+    let sx = 0, sy = 0;
+    const wrap = document.getElementById('boardWrap');
+    wrap.addEventListener('touchstart', (e) => {
+      sx = e.touches[0].clientX;
+      sy = e.touches[0].clientY;
+    }, { passive: true });
+    wrap.addEventListener('touchend', (e) => {
+      const dx = e.changedTouches[0].clientX - sx;
+      const dy = e.changedTouches[0].clientY - sy;
+      if (Math.abs(dx) < 24 && Math.abs(dy) < 24) return;
+      if (Math.abs(dx) > Math.abs(dy)) move(dx > 0 ? 'right' : 'left');
+      else move(dy > 0 ? 'down' : 'up');
+    }, { passive: true });
+
+    document.getElementById('newBtn').addEventListener('click', init);
+    document.getElementById('againBtn').addEventListener('click', init);
+    init();
+  </script>
+</body>
+</html>
